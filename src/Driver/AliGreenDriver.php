@@ -88,7 +88,7 @@ class AliGreenDriver implements DriverInterface
                 ->debug($this->debug) // 开启调试
                 ->asDefaultClient();
         } catch (\Throwable $e) {
-            throw new SecurityException($e->getMessage());
+            throw new SecurityException(sprintf('ali green init system Exception : %s', $e->getMessage()));
         }
     }
 
