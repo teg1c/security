@@ -1,0 +1,22 @@
+{
+    "name": "tegic/security",
+    "description": "security package for PHP",
+    "require": {
+        "php": "^7.3",
+        "tencentcloud/tencentcloud-sdk-php" : "^3.0",
+        "alibabacloud/sdk": "^1.0"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Tegic\\Security\\": "src/"
+        }
+    },
+
+    "authors": [
+        {
+            "name": "tegic",
+            "email": "teg1c@foxmail.com"
+        }
+    ]
+}
