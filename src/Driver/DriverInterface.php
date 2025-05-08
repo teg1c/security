@@ -11,5 +11,8 @@ namespace Tegic\Security\Driver;
 
 interface DriverInterface
 {
+
     public function text($content = '');
+
+    public function setOption(array $options = []);
 }

@@ -2,9 +2,9 @@
     "name": "tegic/security",
     "description": "security package for PHP",
     "require": {
-        "php": "^7.3",
+        "php": "^8.0",
         "tencentcloud/tencentcloud-sdk-php" : "^3.0",
-        "alibabacloud/sdk": "^1.0"
+        "alibabacloud/green-20220302": "^2.20"
     },
     "license": "MIT",
     "autoload": {

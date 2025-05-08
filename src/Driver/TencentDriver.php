@@ -72,4 +72,9 @@ class TencentDriver implements DriverInterface
 
         return new CmsClient($credential, $this->regionId, $clientProfile);
     }
+
+    public function setOption(array $options = [])
+    {
+        // TODO: Implement setOption() method.
+    }
 }

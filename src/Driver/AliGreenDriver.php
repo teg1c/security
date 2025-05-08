@@ -7,11 +7,15 @@ declare(strict_types=1);
  * @Author     Tegic
  * @Contact  https://github.com/teg1c
  */
+
 namespace Tegic\Security\Driver;
 
-use AlibabaCloud\Client\AlibabaCloud;
-use AlibabaCloud\Client\Exception\ClientException;
-use AlibabaCloud\Client\Exception\ServerException;
+use AlibabaCloud\SDK\Green\V20220302\Models\TextModerationPlusRequest;
+use AlibabaCloud\Tea\Exception\TeaUnableRetryError;
+use Darabonba\OpenApi\Models\Config;
+use AlibabaCloud\Tea\Utils\Utils\RuntimeOptions;
+use AlibabaCloud\SDK\Green\V20220302\Green;
+
 use Tegic\Security\Exception\ContentErrorException;
 use Tegic\Security\Exception\SecurityException;
 
@@ -23,6 +27,7 @@ class AliGreenDriver implements DriverInterface
     private $accessKeySecret;
 
     private $regionId;
+    private $endpoint;
 
     private $debug;
 
@@ -30,11 +35,16 @@ class AliGreenDriver implements DriverInterface
 
     private $connectTimeout;
 
+    protected $options;
+
+    protected $client;
+
     public function __construct($config = [])
     {
         $this->accessKeyId = $config['access_key_id'] ?? '';
         $this->accessKeySecret = $config['access_key_secret'] ?? '';
         $this->regionId = $config['region_id'] ?? '';
+        $this->endpoint = $config['endpoint'] ?? '';
         $this->debug = $config['debug'] ?? false;
         $this->timeout = $config['timeout'] ?? 6;
         $this->connectTimeout = $config['connect_timeout'] ?? 10;
@@ -47,49 +57,59 @@ class AliGreenDriver implements DriverInterface
         if (empty($content)) {
             return true;
         }
+        $request = new TextModerationPlusRequest();
+        $request->service = $this->options['service'] ?? 'ugc_moderation_byllm';
+        $serviceParameters = ["content" => $content];
+
+        $request->serviceParameters = json_encode($serviceParameters);
+
+        $runtime = new RuntimeOptions();
+        $runtime->readTimeout = $this->timeout * 1000;
+        $runtime->connectTimeout = $this->connectTimeout * 1000;
+        /** @var Green $client */
+        $client = $this->client;
         try {
-            $task = [
-                'dataId' => uniqid('', true),
-                'content' => $content,
-            ];
-            $result = AlibabaCloud::green()
-                ->v20180509()
-                ->textScan()
-                ->jsonBody([
-                    'tasks' => [$task],
-                    'scenes' => ['antispam'],
-                ])
-                ->request();
-            $result = $result->toArray();
-        } catch (ClientException $e) {
-            throw new SecurityException(sprintf('ali green ClientException : %s', $e->getErrorMessage()));
-        } catch (ServerException $e) {
-            throw new SecurityException(sprintf('ali green ServerException : %s', $e->getErrorMessage()));
+            $response = $client->textModerationPlusWithOptions($request, $runtime);
+            if (200 != $response->statusCode) {
+                throw new SecurityException('AliGreenDriver: text moderation not success. statusCode:' . $response->statusCode);
+            }
+            $body = $response->body;
+            if (200 != $body->code) {
+                throw new ContentErrorException('AliGreenDriver: text moderation not success. code:' . $body->code, $body->toMap());
+            }
+            $result = $body->toMap();
+        } catch (TeaUnableRetryError $e) {
+            throw new SecurityException('AliGreenDriver: text moderation not success. ' . $e->getMessage());
         } catch (\Throwable $e) {
-            throw new SecurityException(sprintf('ali green system Exception : %s', $e->getMessage()));
+            // SecurityException 和 ContentErrorException 排除
+            if ($e instanceof SecurityException || $e instanceof ContentErrorException) {
+                throw $e;
+            }
+            throw new SecurityException('AliGreenDriver: text moderation not success. ' . $e->getMessage());
         }
-        if ($result['code'] != 200) {
-            throw new SecurityException('ali green result errorCode:%s  message:%s', $result['code'], $result['msg']);
+        $data = $result['Data'] ?? [];
+        $riskLevel = $data['RiskLevel'] ?? "none";
+        if ($riskLevel !== "none") {
+            throw new ContentErrorException('AliGreenDriver: text moderation not success. riskLevel:' . $riskLevel, $data);
         }
-        $data = current($result['data']);
-        if (isset($data['filteredContent'])) {
-            throw new ContentErrorException('ali green result Do not pass', $result['data']);
-        }
-        return true;
+        return $data;
     }
 
     protected function init()
     {
-        try {
-            AlibabaCloud::accessKeyClient($this->accessKeyId, $this->accessKeySecret)
-                ->regionId($this->regionId)// 设置客户端区域，
-                ->timeout($this->timeout)  // 超时10秒，使用该客户端且没有单独设置的请求都使用此设置
-                ->connectTimeout($this->connectTimeout)// 连接超时10秒
-                ->debug($this->debug) // 开启调试
-                ->asDefaultClient();
-        } catch (\Throwable $e) {
-            throw new SecurityException(sprintf('ali green init system Exception : %s', $e->getMessage()));
-        }
+        $config = new Config([
+
+            "accessKeyId" => $this->accessKeyId,
+            "accessKeySecret" => $this->accessKeySecret,
+            "endpoint" => $this->endpoint,
+            "regionId" => $this->regionId
+        ]);
+        // 注意，此处实例化的client请尽可能重复使用，避免重复建立连接，提升检测性能。
+        $this->client = new Green($config);
     }
 
+    public function setOption(array $options = [])
+    {
+        $this->options = $options;
+    }
 }
