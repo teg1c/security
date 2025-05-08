@@ -43,7 +43,7 @@ class Security
         }
 
         $driverClass = $config->get("security.{$driver}.driver", AliGreenDriver::class);
-        $config = $config->get("lock.{$driver}.config", []);
+        $config = $config->get("security.{$driver}.config", []);
 
         return make($driverClass, [$config]);
     }
