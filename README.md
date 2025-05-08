@@ -2,7 +2,7 @@
 
 ## 运行环境
 
-- php >= 7.3
+- php >= 8.0
 - composer
 
 ## 安装
@@ -13,50 +13,33 @@ composer require tegic/security
 
 ## 说明
 
-### 发布配置文件
-
-```shell
-php bin/hyperf.php vendor:publish tegic/security
-```
 
 ### 使用
 
 ```php
-<?php
+$config = [
+    'access_key_id' => 'LTAI5tE***********',
+    'access_key_secret' => 'ybdyNZ69kU7dRA***********',
+    'region_id' => 'cn-shanghai',
+    'endpoint' => 'green-cip.cn-shanghai.aliyuncs.com'
+];
 
-declare(strict_types=1);
-
-namespace App\Controller;
-
-use Hyperf\HttpServer\Annotation\AutoController;
-
-/**
- * @AutoController()
- */
-class IndexController extends AbstractController
-{
-    public function index()
-    {
-        $config = [
-            'access_key_id'=>'',
-            'access_key_secret'=>'',
-            'region_id'=>'cn-shanghai',
-            'debug'=>false,
-        ];
-        try {
-            //普通方式调用 传入配置
-            $client = \Tegic\Security\Security::instance('tencent',$config);
-            //hyperf 调用 默认使用配置文件
-            $client = \Tegic\Security\Security::instance('tencent');
-            $result = $client->text('你好啊傻逼');// true 为内容通过
-        }catch (\Tegic\Security\Exception\ContentErrorException $exception){
-            //内容审核不通过，$exception->getData() 可以获取 sdk 返回的内容
-            var_dump($exception->getData());
-        }catch (\Tegic\Security\Exception\SecurityException $securityException){
-            //系统错误，如 配置不正确等等..
-        }
-        
-    }
+try {
+    //普通方式调用 传入配置
+    $client = Security::instance('ali', $config);
+    $client->setOption([
+        'service' => 'ugc_moderation_byllm'
+    ]);
+    //hyperf 调用 默认使用配置文件
+//    $client = \Tegic\Security\Security::instance('tencent');
+    $result = $client->text('测试');// true 为内容通过
+    var_dump($result ?? '');
+} catch (\Tegic\Security\Exception\ContentErrorException $exception) {
+    //内容审核不通过，$exception->getData() 可以获取 sdk 返回的内容
+    var_dump("不通过", $exception->getData());
+} catch (\Tegic\Security\Exception\SecurityException $securityException) {
+    //系统错误，如 配置不正确等等..
+    var_dump("系统错误", $securityException->getMessage());
 }
 
 ```
