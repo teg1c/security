@@ -29,7 +29,7 @@ try {
     $client = Security::instance('ali', $config);
     $client->setOption([
         'service' => 'ugc_moderation_byllm'
-    ]);
+    ]);****
     //hyperf 调用 默认使用配置文件
 //    $client = \Tegic\Security\Security::instance('tencent');
     $result = $client->text('测试');// true 为内容通过
