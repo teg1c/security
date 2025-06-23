@@ -13,7 +13,7 @@ namespace Tegic\Security\Driver;
 use AlibabaCloud\SDK\Green\V20220302\Models\TextModerationPlusRequest;
 use AlibabaCloud\Tea\Exception\TeaUnableRetryError;
 use Darabonba\OpenApi\Models\Config;
-use AlibabaCloud\Tea\Utils\Utils\RuntimeOptions;
+use AlibabaCloud\Dara\Models\RuntimeOptions;
 use AlibabaCloud\SDK\Green\V20220302\Green;
 
 use Tegic\Security\Exception\ContentErrorException;
